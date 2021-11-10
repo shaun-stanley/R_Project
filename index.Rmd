@@ -12,6 +12,8 @@ library(tidytext)
 library(gutenbergr)
 ```
 
+## Import data
+
 ```{r gutenberg_works}
 temp <- gutenberg_works()
 ```
@@ -23,21 +25,24 @@ kipling_download <- gutenberg_works() %>%
 
 ```
 
-```{r backup_data}
-write_csv(kipling_download, "kipling_download.csv")
-
-```
-
 ```{r gutenberg_twain_download}
 twain_download <- gutenberg_works() %>%
                         filter(str_detect(author, "Twain")) %>% 
                       gutenberg_download(mirror="https://gutenberg.pglaf.org/", meta_fields = c("title", "author"))
 ```
 
+
+## Backing up data
+
 ```{r backup_data}
 write_csv(twain_download, "twain_download.csv")
-
 ```
+
+```{r backup_data}
+write_csv(kipling_download, "kipling_download.csv")
+```
+
+## Restoring data
 
 ```{r restore_data}
 kipling_import <- read_csv("kipling_download.csv")
@@ -103,6 +108,41 @@ twain_import <- twain_import %>%
   arrange(year) # Arranging the table by year
 ```
 
+## Modelling Data
+
+### Adding Author
+
+```{r kipling_author}
+kipling_authors <- bind_rows(kipling_import)
+```
+
+```{r twain_author}
+twain_authors <- bind_rows(twain_import)
+```
+
+```{r kipling_column}
+kipling_authors <- kipling_authors %>% 
+                mutate(author ="Kipling")
+```
+
+```{r twain_column}
+twain_authors <- twain_authors %>% 
+                mutate(author ="Twain")
+```
+
+```{r all_authors}
+all_authors <- bind_rows(kipling_authors, twain_authors)
+```
+
+### Tidying the Text
+
+```{r tidy_all_authors}
+tidy_all_authors <- all_authors %>% 
+                    unnest_tokens(word, text) %>% 
+                    anti_join(stop_words)
+```
+
+-------------------------------------------------------------------------------------------------------------
 
 ```{r summary for kipling}
 freq_long <- kipling_import %>%
