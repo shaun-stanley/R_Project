@@ -2,7 +2,9 @@
 title: "R Project"
 author: "Shaun Stanley"
 date: "29/10/2021"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r}
@@ -34,11 +36,11 @@ twain_download <- gutenberg_works() %>%
 
 ## Backing up data
 
-```{r backup_data, eval=FALSE}
+```{r backup_data_kipling, eval=FALSE}
 write_csv(twain_download, "twain_download.csv")
 ```
 
-```{r backup_data, eval=FALSE}
+```{r backup_data_twain, eval=FALSE}
 write_csv(kipling_download, "kipling_download.csv")
 ```
 
@@ -144,14 +146,18 @@ tidy_all_authors <- all_authors %>%
 
 ### Creating operationalizing words
 
-Now that we have our corpus in place, we can do some more "feature engineering" by marking each time one of our two operational concepts occurs: bravery and duty.
-
-We can create two separate lexicons and join them to the table.
-
 ```{r adding_words}
 bravery_words <- c("brave","adventure", "confident", "confidently", "courage", "fear")
 
 bravery_df <- data_frame(word = bravery_words, bravery = TRUE)
+
+friendship_words <- c("friend","chum", "partner", "pal", "buddy")
+
+friendship_df <- data_frame(word = friendship_words, friendship = TRUE)
+
+courage_words <- c("courage", "dare", "dared", " brave","fear", "hero")
+
+courage_df <- data_frame(word = courage_words, courage = TRUE)
 
 duty_words <- c("duty", "burden", "job", " work","ought")
 
@@ -163,6 +169,8 @@ duty_df <- data_frame(word = duty_words, duty = TRUE)
 ```{r tagged_words}
 all_authors_tagged <- tidy_all_authors %>% 
                                 left_join(bravery_df) %>% 
+                                left_join(friendship_df) %>%
+                                left_join(courage_df) %>% 
                                 left_join(duty_df)
 ```
 
@@ -171,7 +179,7 @@ all_authors_tagged <- tidy_all_authors %>%
 ```{r calculate_words}
 all_authors_table <- all_authors_tagged %>% 
                      group_by(author) %>% 
-                     count(bravery, duty) %>% 
+                     count(bravery, friendship, courage, duty) %>% 
                      mutate (percent = n/sum(n)*100)
 ```
 
@@ -185,12 +193,42 @@ library(ggthemes)
 
 ## Part 2: Basic EDA with ggplot
 
-```{r relative_frequency_long}
+```{r relative_frequency_long_bravery}
 all_authors_frequency <- all_authors_tagged %>%
   group_by(title) %>%
   add_count(name = "length") %>%
   mutate(bravery_count = sum(bravery, na.rm = TRUE)) %>%
   mutate(relative_frequency = bravery_count / length) %>%
+  select(author, title, relative_frequency) %>% 
+  distinct()
+```
+
+```{r relative_frequency_long_friendship}
+all_authors_frequency <- all_authors_tagged %>%
+  group_by(title) %>%
+  add_count(name = "length") %>%
+  mutate(friendship_count = sum(friendship, na.rm = TRUE)) %>%
+  mutate(relative_frequency = friendship_count / length) %>%
+  select(author, title, relative_frequency) %>% 
+  distinct()
+```
+
+```{r relative_frequency_long_courage}
+all_authors_frequency <- all_authors_tagged %>%
+  group_by(title) %>%
+  add_count(name = "length") %>%
+  mutate(courage_count = sum(courage, na.rm = TRUE)) %>%
+  mutate(relative_frequency = courage_count / length) %>%
+  select(author, title, relative_frequency) %>% 
+  distinct()
+```
+
+```{r relative_frequency_long_duty}
+all_authors_frequency <- all_authors_tagged %>%
+  group_by(title) %>%
+  add_count(name = "length") %>%
+  mutate(duty_count = sum(duty, na.rm = TRUE)) %>%
+  mutate(relative_frequency = duty_count / length) %>%
   select(author, title, relative_frequency) %>% 
   distinct()
 ```
@@ -206,16 +244,15 @@ all_authors_frequency_short <- all_authors_tagged %>%
 
 ### Grouping variables in a histogram`
 
-```{r histogram_bravery_duty}
+```{r histogram_bravery}
 all_authors_tagged %>%
   group_by(author, title) %>%
   #Run the same summary function, but instead of only creating one column                      create two.
   summarise(
     bravery = sum(bravery, na.rm = TRUE) / n(),
-    duty = sum(duty, na.rm = TRUE) / n()
   ) %>%
   #Pivot the table longer and put the column names next to their relative                      frequency values.
-  pivot_longer(bravery:duty,
+  pivot_longer(bravery,
                names_to = "concept",
                values_to = "relative_frequency") %>%
   #Clean up the variable by capitalizing them.
@@ -228,13 +265,184 @@ all_authors_tagged %>%
     position = "identity",
     bins = 5
   ) +
-  labs(title = "Romance and Technology by Gender and Author",
-       x = "Relative Frequency of Technology and Romance Words",
+  labs(title = "Bravery by Author",
+       x = "Relative Frequency of Bravery Words",
        y = "Number of Texts",
        fill = "Author") +
   facet_wrap(vars(author, concept)) +
   theme_clean()
 ```
 
+```{r histogram_friendship}
+all_authors_tagged %>%
+  group_by(author, title) %>%
+  #Run the same summary function, but instead of only creating one column                      create two.
+  summarise(
+    friendship = sum(friendship, na.rm = TRUE) / n(),
+  ) %>%
+  #Pivot the table longer and put the column names next to their relative                      frequency values.
+  pivot_longer(friendship,
+               names_to = "concept",
+               values_to = "relative_frequency") %>%
+  #Clean up the variable by capitalizing them.
+  mutate(author = str_to_title(author), concept =
+           str_to_title(concept)) %>%
+  ggplot(aes(relative_frequency, fill = author)) +
+  geom_histogram(
+    color = "black",
+    alpha = .5,
+    position = "identity",
+    bins = 5
+  ) +
+  labs(title = "Friendship by Author",
+       x = "Relative Frequency of Friendship Words",
+       y = "Number of Texts",
+       fill = "Author") +
+  facet_wrap(vars(author, concept)) +
+  theme_clean()
+```
 
+```{r histogram_courage}
+all_authors_tagged %>%
+  group_by(author, title) %>%
+  #Run the same summary function, but instead of only creating one column                      create two.
+  summarise(
+    courage = sum(courage, na.rm = TRUE) / n(),
+  ) %>%
+  #Pivot the table longer and put the column names next to their relative                      frequency values.
+  pivot_longer(courage,
+               names_to = "concept",
+               values_to = "relative_frequency") %>%
+  #Clean up the variable by capitalizing them.
+  mutate(author = str_to_title(author), concept =
+           str_to_title(concept)) %>%
+  ggplot(aes(relative_frequency, fill = author)) +
+  geom_histogram(
+    color = "black",
+    alpha = .5,
+    position = "identity",
+    bins = 5
+  ) +
+  labs(title = "Courage by Author",
+       x = "Relative Frequency of Courage Words",
+       y = "Number of Texts",
+       fill = "Author") +
+  facet_wrap(vars(author, concept)) +
+  theme_clean()
+```
+
+```{r histogram_duty}
+all_authors_tagged %>%
+  group_by(author, title) %>%
+  #Run the same summary function, but instead of only creating one column                      create two.
+  summarise(
+    duty = sum(duty, na.rm = TRUE) / n(),
+  ) %>%
+  #Pivot the table longer and put the column names next to their relative                      frequency values.
+  pivot_longer(duty,
+               names_to = "concept",
+               values_to = "relative_frequency") %>%
+  #Clean up the variable by capitalizing them.
+  mutate(author = str_to_title(author), concept =
+           str_to_title(concept)) %>%
+  ggplot(aes(relative_frequency, fill = author)) +
+  geom_histogram(
+    color = "black",
+    alpha = .5,
+    position = "identity",
+    bins = 5
+  ) +
+  labs(title = "Duty by Author",
+       x = "Relative Frequency of Duty Words",
+       y = "Number of Texts",
+       fill = "Author") +
+  facet_wrap(vars(author, concept)) +
+  theme_clean()
+```
+
+##Sentiment Analysis
+
+```{r all_author_sentences}
+all_authors_sentence <- all_authors %>%
+  group_by(author, title, text) %>%
+  summarise (text = paste(text, collapse = "")) %>%
+  unnest_regex(sentences, text, pattern = "[.?!]", to_lower = FALSE)  
+```
+
+```{r author_sentence_nr}
+author_sentence_nr <- all_authors_sentence %>%
+  ungroup() %>%
+  mutate(sentence_number = row_number()) %>%
+  group_by(author, title, sentence_number) %>%
+  unnest_tokens(word, sentences) %>%
+  anti_join(stop_words)
+```
+
+### Adding the concepts
+
+```{r author_concept}
+author_concept <-  author_sentence_nr %>%
+  left_join(bravery_df) %>%
+  left_join(friendship_df) %>%
+  left_join(courage_df) %>%
+  left_join(duty_df) 
+```
+
+```{r author_concept_sentiment}
+author_concept_sentiment <- author_concept %>%
+  inner_join(get_sentiments("bing"))
+```
+
+### Calculating sentiment total
+
+```{r author_sentiment_total}
+author_sentiment_total <- author_concept_sentiment %>%
+  count(sentence_number, sentiment) %>%
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0)  %>%
+  mutate(sentiment = positive - negative) %>%
+  left_join(author_concept) %>%
+  filter(bravery == TRUE | friendship == TRUE | courage == TRUE | duty == TRUE)
+```
+
+### Calculating sentiment by concept word
+
+```{r author_sentiment_table_bravery_friendship}
+author_sentiment_table <- author_sentiment_total %>%
+  pivot_longer(bravery:friendship,
+               names_to = "concept",
+               values_to = "total_sentiment")  %>%
+  drop_na() %>%
+  group_by(author, concept) %>%
+  summarise (total = sum(sentiment)) %>%
+  ungroup()
+```
+
+```{r author_sentiment_table_courage_duty}
+author_sentiment_table <- author_sentiment_total %>%
+  pivot_longer(courage:duty,
+               names_to = "concept",
+               values_to = "total_sentiment")  %>%
+  drop_na() %>%
+  group_by(author, concept) %>%
+  summarise (total = sum(sentiment)) %>%
+  ungroup()
+```
+
+### Plotting sentiment
+
+```{r author_sentiment_plot}
+author_sentiment_table %>%
+  ggplot(aes(author, y = total, fill = author)) +
+  geom_col(color = "black",
+           alpha = .7,
+           position = "identity") +
+  facet_wrap(~ concept) +
+  labs(title = "Positive and Negative Sentiment by Concept",
+       x = "Overal Sentiment",
+       y = "Author",
+       fill = "Yes") +
+  coord_flip() 
+```
 
