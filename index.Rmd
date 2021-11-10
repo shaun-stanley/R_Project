@@ -18,14 +18,14 @@ library(gutenbergr)
 temp <- gutenberg_works()
 ```
 
-```{r gutenberg_kipling_download}
+```{r gutenberg_kipling_download, eval=FALSE}
 kipling_download <- gutenberg_works() %>%
                         filter(str_detect(author, "Kipling")) %>% 
                       gutenberg_download(mirror="https://gutenberg.pglaf.org/", meta_fields = c("title", "author"))
 
 ```
 
-```{r gutenberg_twain_download}
+```{r gutenberg_twain_download, eval=FALSE}
 twain_download <- gutenberg_works() %>%
                         filter(str_detect(author, "Twain")) %>% 
                       gutenberg_download(mirror="https://gutenberg.pglaf.org/", meta_fields = c("title", "author"))
@@ -34,11 +34,11 @@ twain_download <- gutenberg_works() %>%
 
 ## Backing up data
 
-```{r backup_data}
+```{r backup_data, eval=FALSE}
 write_csv(twain_download, "twain_download.csv")
 ```
 
-```{r backup_data}
+```{r backup_data, eval=FALSE}
 write_csv(kipling_download, "kipling_download.csv")
 ```
 
@@ -204,31 +204,37 @@ all_authors_frequency_short <- all_authors_tagged %>%
               sum(bravery, na.rm = TRUE) / n())
 ```
 
-### Histograms with ggplot
+### Grouping variables in a histogram`
 
-```{r basic_histogram}
-all_authors_frequency %>%
-  ggplot(aes(relative_frequency)) +
-  geom_histogram()
-```
-
-### Grouping variables in a histogram by
-
-```{r frequency_buckets}
-all_authors_frequency %>%
-  ggplot(aes(relative_frequency, fill = author))+ 
-  geom_histogram(color = "black",
+```{r histogram_bravery_duty}
+all_authors_tagged %>%
+  group_by(author, title) %>%
+  #Run the same summary function, but instead of only creating one column                      create two.
+  summarise(
+    bravery = sum(bravery, na.rm = TRUE) / n(),
+    duty = sum(duty, na.rm = TRUE) / n()
+  ) %>%
+  #Pivot the table longer and put the column names next to their relative                      frequency values.
+  pivot_longer(bravery:duty,
+               names_to = "concept",
+               values_to = "relative_frequency") %>%
+  #Clean up the variable by capitalizing them.
+  mutate(author = str_to_title(author), concept =
+           str_to_title(concept)) %>%
+  ggplot(aes(relative_frequency, fill = author)) +
+  geom_histogram(
+    color = "black",
     alpha = .5,
     position = "identity",
-    bins = 5)+
-  labs(title = "Histogram of Bravery Words by Author",
-       x = "Relative Frequency of Bravery Words",
+    bins = 5
+  ) +
+  labs(title = "Romance and Technology by Gender and Author",
+       x = "Relative Frequency of Technology and Romance Words",
        y = "Number of Texts",
        fill = "Author") +
-  facet_wrap(~author) +
-theme_economist()
+  facet_wrap(vars(author, concept)) +
+  theme_clean()
 ```
-
 
 
 
