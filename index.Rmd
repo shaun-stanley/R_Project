@@ -214,17 +214,6 @@ all_authors_frequency %>%
 
 ### Grouping variables in a histogram by
 
-```{r histogram_authors}
-all_authors_frequency %>%
-  ggplot(aes(relative_frequency, fill = author)) +
-  geom_histogram(color = "black",
-                 alpha = .5,
-                 position = "identity")+
-  facet_wrap(~author)
-```
-
-### Using facet_wrap()
-
 ```{r frequency_buckets}
 all_authors_frequency %>%
   ggplot(aes(relative_frequency, fill = author))+ 
@@ -232,11 +221,14 @@ all_authors_frequency %>%
     alpha = .5,
     position = "identity",
     bins = 5)+
-  labs(title = "Histogram of Mentioned Locations by Occupation and Gender",
-       x = "Relative Frequency of Romance Words",
+  labs(title = "Histogram of Bravery Words by Author",
+       x = "Relative Frequency of Bravery Words",
        y = "Number of Texts",
        fill = "Author") +
-  facet_wrap(~author)
+  facet_wrap(~author) +
+theme_economist()
 ```
+
+
 
 
