@@ -1,30 +1,176 @@
 ---
 title: "R Project"
 author: "Shaun Stanley"
-date: "20/09/2021"
+date: "29/10/2021"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r}
+library(tidyverse)
+library(humaniformat) # used to convert from First Name Last Name to Last Name, First Name
+library(tidytext)
+library(gutenbergr)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r gutenberg_works}
+temp <- gutenberg_works()
 ```
 
-## Including Plots
+```{r gutenberg_kipling_download}
+kipling_download <- gutenberg_works() %>%
+                        filter(str_detect(author, "Kipling")) %>% 
+                      gutenberg_download(mirror="https://gutenberg.pglaf.org/", meta_fields = c("title", "author"))
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r backup_data}
+write_csv(kipling_download, "kipling_download.csv")
+
+```
+
+```{r gutenberg_twain_download}
+twain_download <- gutenberg_works() %>%
+                        filter(str_detect(author, "Twain")) %>% 
+                      gutenberg_download(mirror="https://gutenberg.pglaf.org/", meta_fields = c("title", "author"))
+```
+
+```{r backup_data}
+write_csv(twain_download, "twain_download.csv")
+
+```
+
+```{r restore_data}
+kipling_import <- read_csv("kipling_download.csv")
+twain_import <- read_csv("twain_download.csv")
+```
+
+```{r}
+kipling_import <- kipling_import %>%
+    mutate(year = case_when(title == "Plain Tales from the Hills" ~ "1888",
+                          title == "Soldiers Three" ~ "1888",
+                          title == "The Man Who Would Be King" ~ "1888",
+                          title == "The Phantom Rickshaw and Other Ghost Stories" ~ "1888",
+                          title == "Under the Deodars" ~ "1888",
+                          title == "Wee Willie Winkie and Other Stories Volume 2" ~ "1888",
+                          title == "In Black and White" ~ "1889",
+                          title == "Indian Tales" ~ "1819",
+                          title == "The Light that Failed" ~ "1890",
+                          title == "Life's Handicap" ~ "1891",
+                          title == "The Bridge Builders" ~ "1893",
+                          title == "The Jungle Book" ~ "1894",
+                          title == "The Second Jungle Book" ~ "1895",
+                          title == "Captains Courageous" ~ "1896",
+                          title == "Soldier Stories" ~ "1896",
+                          title == "Soldiers Three Part 2" ~ "1897",
+                          title == "The City of Dreadful Night" ~ "1898",
+                          title == "The Day's Work Volume 1" ~ "1898",
+                          title == "Rewards and Fairies" ~ "1899",
+                          title == "Stalky and Co" ~ "1899",
+                          title == "Kim" ~ "1901",
+                          title == "Just So Stories" ~ "1902",
+                          title == "With the Night Mail" ~ "1909",
+                          title == "The Eyes of Asia" ~ "1916",
+                          title == "Land and Sea Tales for Boys and Girls" ~ "1923",)) %>% # Adds the corresponding years to each title
+  arrange(year) # Arranging the table by year
+```
+
+```{r}
+twain_import <- twain_import %>%
+    mutate(year = case_when(title == "A Connecticut Yankee" ~ "1888",
+                          title == "Those Extraordinary Twins" ~ "1888",
+                          title == "The Tragedy of Pudd'nhead Wilson" ~ "1888",
+                          title == "Adventures of Huckleberry Finn" ~ "1888",
+                          title == "the adventures of tom sawyer" ~ "1888",
+                          title == "Personal Recollections of Joan of Arc" ~ "1888",
+                          title == "The Stolen White Elephant" ~ "1889",
+                          title == "The American Claimant" ~ "1819",
+                          title == "The ś1,000,000 bank-note, and other new stories" ~ "1890",
+                          title == "Alonzo Fitz, and Other Stories" ~ "1891",
+                          title == "Tom Sawyer, Detective" ~ "1893",
+                          title == "The Prince and the Pauper" ~ "1894",
+                          title == "The Mysterious Stranger A Romance" ~ "1895",
+                          title == "the Man That Corrupted Hadleyburg, and Other Stories" ~ "1896",
+                          title == "Tom Sawyer Abroad" ~ "1896",
+                          title == "The $30,000 Bequest, and Other Stories" ~ "1897",
+                          title == "A Tramp Abroad" ~ "1898",
+                          title == "innocents abroad" ~ "1898",
+                          title == "The Mysterious Stranger, and Other Stories" ~ "1899",
+                          title == "Personal Recollections of Joan of Arc Volume 2" ~ "1899",
+                          title == "A Double Barrelled Detective Story" ~ "1901",
+                          title == "Roughing It" ~ "1902",
+                          title == "A Horse's Tale" ~ "1909",
+                          title == "Life on the Mississippi" ~ "1916",)) %>% # Adds the corresponding years to each title
+  arrange(year) # Arranging the table by year
+```
+
+
+```{r summary for kipling}
+freq_long <- kipling_import %>%
+  unnest_tokens(word, text) %>%
+  count(word) %>%
+  arrange(desc(n))
+freq_short <- freq_long %>%
+  anti_join(stop_words)
+sum(freq_long$n) # Number of total words
+```
+
+```{r bigrams, include=FALSE}
+kipling_bigrams <- kipling_import %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2) #Creates bigram
+kipling_bigrams <- na.omit(kipling_bigrams) # Removes NA values
+kipling_bigrams_filtered <- kipling_bigrams %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>% # Separates words into 2 different columns
+  filter(!word1 %in% stop_words$word) %>% # Removes the stop words
+  filter(!word2 %in% stop_words$word)
+kipling_bigrams_reduced <- kipling_bigrams_filtered %>%
+  filter(word1 %in% "man" | word2 %in% "woman" | word1 %in% "day" | word2 %in% "night" | word1 %in% "master" | word2 %in% "mistress") # Creates table with only identifying words for kipling
+```
+
+```{r sentiments, include=FALSE}
+# Gets the lexicons
+afinn <- get_sentiments("afinn")
+bing <- get_sentiments("bing")
+# Creates table where the first word is the identifying word, using the Afinn lexicon
+word1a <- kipling_bigrams_reduced %>%
+  filter(word1 == "man" | word1 == "day" | word1 == "master") %>%
+  inner_join(afinn, by = c(word2 = "word")) %>%
+  count(word2, value, sort = TRUE) %>%
+  mutate(total = value*n) %>%
+  rename(sentiment_word = word2)
+# Creates table where the second word is the identifying word, using the Afinn lexicon
+word2a <- kipling_bigrams_reduced %>%
+  filter(word2 == "woman" | word2 == "night" | word2 == "mistress") %>%
+  inner_join(afinn, by = c(word1 = "word")) %>%
+  count(word1, value, sort = TRUE) %>%
+  mutate(total = value*n)%>%
+  rename(sentiment_word = word1)
+# Creates table where the first word is the identifying word, using the Bing lexicon
+word1b <- kipling_bigrams_reduced %>%
+  filter(word1 == "man" | word1 == "day" | word1 == "master") %>%
+  inner_join(bing, by = c(word2 = "word")) %>%
+  count(word2, sentiment, sort = TRUE) %>%
+  add_count(sentiment)%>%
+  rename(sentiment_word = word2)
+# Creates table where the second word is the identifying word, using the Bing lexicon
+word2b <- kipling_bigrams_reduced %>%
+  filter(word2 == "woman" | word2 == "night" | word2 == "mistress") %>%
+  inner_join(bing, by = c(word1 = "word")) %>%
+  count(word1, sentiment, sort = TRUE) %>%
+  add_count(sentiment)%>%
+  rename(sentiment_word = word1)
+# Combines the Afinn tables into 1 table
+afinn_sentiments <- bind_rows(word1a, word2a) %>%
+  arrange(sentiment_word) %>%
+  group_by(sentiment_word) %>%
+  summarise_each(funs(sum)) %>%
+  select(-2:-3)
+# Combines the Bing tables into 1 table
+bing_sentiments <- bind_rows(word1b, word2b)
+```
+
+```{r bing_graph}
+# Plots the bing histogram
+bing_sentiments %>%
+  ggplot(aes(sentiment)) + 
+  geom_histogram(stat="count")
+```
