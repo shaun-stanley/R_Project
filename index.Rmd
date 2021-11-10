@@ -175,77 +175,68 @@ all_authors_table <- all_authors_tagged %>%
                      mutate (percent = n/sum(n)*100)
 ```
 
-
-
--------------------------------------------------------------------------------------------------------------
-
-```{r summary for kipling}
-freq_long <- kipling_import %>%
-  unnest_tokens(word, text) %>%
-  count(word) %>%
-  arrange(desc(n))
-freq_short <- freq_long %>%
-  anti_join(stop_words)
-sum(freq_long$n) # Number of total words
+```{r load_libraries}
+library(gutenbergr)
+library(tidytext)
+library(tidyverse)
+library(scales)
+library(ggthemes)
 ```
 
-```{r bigrams, include=FALSE}
-kipling_bigrams <- kipling_import %>%
-  unnest_tokens(bigram, text, token = "ngrams", n = 2) #Creates bigram
-kipling_bigrams <- na.omit(kipling_bigrams) # Removes NA values
-kipling_bigrams_filtered <- kipling_bigrams %>%
-  separate(bigram, c("word1", "word2"), sep = " ") %>% # Separates words into 2 different columns
-  filter(!word1 %in% stop_words$word) %>% # Removes the stop words
-  filter(!word2 %in% stop_words$word)
-kipling_bigrams_reduced <- kipling_bigrams_filtered %>%
-  filter(word1 %in% "man" | word2 %in% "woman" | word1 %in% "day" | word2 %in% "night" | word1 %in% "master" | word2 %in% "mistress") # Creates table with only identifying words for kipling
+## Part 2: Basic EDA with ggplot
+
+```{r relative_frequency_long}
+all_authors_frequency <- all_authors_tagged %>%
+  group_by(title) %>%
+  add_count(name = "length") %>%
+  mutate(bravery_count = sum(bravery, na.rm = TRUE)) %>%
+  mutate(relative_frequency = bravery_count / length) %>%
+  select(author, title, relative_frequency) %>% 
+  distinct()
 ```
 
-```{r sentiments, include=FALSE}
-# Gets the lexicons
-afinn <- get_sentiments("afinn")
-bing <- get_sentiments("bing")
-# Creates table where the first word is the identifying word, using the Afinn lexicon
-word1a <- kipling_bigrams_reduced %>%
-  filter(word1 == "man" | word1 == "day" | word1 == "master") %>%
-  inner_join(afinn, by = c(word2 = "word")) %>%
-  count(word2, value, sort = TRUE) %>%
-  mutate(total = value*n) %>%
-  rename(sentiment_word = word2)
-# Creates table where the second word is the identifying word, using the Afinn lexicon
-word2a <- kipling_bigrams_reduced %>%
-  filter(word2 == "woman" | word2 == "night" | word2 == "mistress") %>%
-  inner_join(afinn, by = c(word1 = "word")) %>%
-  count(word1, value, sort = TRUE) %>%
-  mutate(total = value*n)%>%
-  rename(sentiment_word = word1)
-# Creates table where the first word is the identifying word, using the Bing lexicon
-word1b <- kipling_bigrams_reduced %>%
-  filter(word1 == "man" | word1 == "day" | word1 == "master") %>%
-  inner_join(bing, by = c(word2 = "word")) %>%
-  count(word2, sentiment, sort = TRUE) %>%
-  add_count(sentiment)%>%
-  rename(sentiment_word = word2)
-# Creates table where the second word is the identifying word, using the Bing lexicon
-word2b <- kipling_bigrams_reduced %>%
-  filter(word2 == "woman" | word2 == "night" | word2 == "mistress") %>%
-  inner_join(bing, by = c(word1 = "word")) %>%
-  count(word1, sentiment, sort = TRUE) %>%
-  add_count(sentiment)%>%
-  rename(sentiment_word = word1)
-# Combines the Afinn tables into 1 table
-afinn_sentiments <- bind_rows(word1a, word2a) %>%
-  arrange(sentiment_word) %>%
-  group_by(sentiment_word) %>%
-  summarise_each(funs(sum)) %>%
-  select(-2:-3)
-# Combines the Bing tables into 1 table
-bing_sentiments <- bind_rows(word1b, word2b)
+#This is quite a number of steps. We can refactor this with the `summarise` function to read:
+
+```{r relative_frequency_short, message=FALSE}
+all_authors_frequency_short <- all_authors_tagged %>%
+  group_by(author, title) %>%
+  summarise(relative_frequency_short =
+              sum(bravery, na.rm = TRUE) / n())
 ```
 
-```{r bing_graph}
-# Plots the bing histogram
-bing_sentiments %>%
-  ggplot(aes(sentiment)) + 
-  geom_histogram(stat="count")
+### Histograms with ggplot
+
+```{r basic_histogram}
+all_authors_frequency %>%
+  ggplot(aes(relative_frequency)) +
+  geom_histogram()
 ```
+
+### Grouping variables in a histogram by
+
+```{r histogram_authors}
+all_authors_frequency %>%
+  ggplot(aes(relative_frequency, fill = author)) +
+  geom_histogram(color = "black",
+                 alpha = .5,
+                 position = "identity")+
+  facet_wrap(~author)
+```
+
+### Using facet_wrap()
+
+```{r frequency_buckets}
+all_authors_frequency %>%
+  ggplot(aes(relative_frequency, fill = author))+ 
+  geom_histogram(color = "black",
+    alpha = .5,
+    position = "identity",
+    bins = 5)+
+  labs(title = "Histogram of Mentioned Locations by Occupation and Gender",
+       x = "Relative Frequency of Romance Words",
+       y = "Number of Texts",
+       fill = "Author") +
+  facet_wrap(~author)
+```
+
+
