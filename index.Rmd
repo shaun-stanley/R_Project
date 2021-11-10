@@ -142,6 +142,41 @@ tidy_all_authors <- all_authors %>%
                     anti_join(stop_words)
 ```
 
+### Creating operationalizing words
+
+Now that we have our corpus in place, we can do some more "feature engineering" by marking each time one of our two operational concepts occurs: bravery and duty.
+
+We can create two separate lexicons and join them to the table.
+
+```{r adding_words}
+bravery_words <- c("brave","adventure", "confident", "confidently", "courage", "fear")
+
+bravery_df <- data_frame(word = bravery_words, bravery = TRUE)
+
+duty_words <- c("duty", "burden", "job", " work","ought")
+
+duty_df <- data_frame(word = duty_words, duty = TRUE)
+```
+
+#We can add these words by using a left_join. A left join will keep everything on left hand side 
+
+```{r tagged_words}
+all_authors_tagged <- tidy_all_authors %>% 
+                                left_join(bravery_df) %>% 
+                                left_join(duty_df)
+```
+
+#We can then establish some basic percentages for the use of each word.
+
+```{r calculate_words}
+all_authors_table <- all_authors_tagged %>% 
+                     group_by(author) %>% 
+                     count(bravery, duty) %>% 
+                     mutate (percent = n/sum(n)*100)
+```
+
+
+
 -------------------------------------------------------------------------------------------------------------
 
 ```{r summary for kipling}
