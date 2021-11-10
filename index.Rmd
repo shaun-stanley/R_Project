@@ -84,7 +84,7 @@ twain_import <- twain_import %>%
                           title == "Personal Recollections of Joan of Arc" ~ "1896",
                           title == "The Stolen White Elephant" ~ "1882",
                           title == "The American Claimant" ~ "18",
-                          title == "The ś1,000,000 bank-note, and other new stories" ~ "18930",
+                          title == "The ś1,000,000 bank-note, and other new stories" ~ "1893",
                           title == "Alonzo Fitz, and Other Stories" ~ "1891",
                           title == "Tom Sawyer, Detective" ~ "1893",
                           title == "The Prince and the Pauper" ~ "1894",
