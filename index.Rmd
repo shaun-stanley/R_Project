@@ -142,7 +142,7 @@ twain_authors <- twain_authors %>%
                 mutate(author ="Twain")
 ```
 
-```{r all_authors}
+```{r all_authors, include=FALSE}
 all_authors <- bind_rows(kipling_authors, twain_authors)
 ```
 
@@ -215,7 +215,7 @@ library(ggthemes)
 
 
 
-```{r relative_frequency_long_bravery}
+```{r relative_frequency_long_bravery, include=FALSE}
 
 ## Part 2: Basic EDA with ggplot
 
@@ -228,7 +228,7 @@ all_authors_frequency <- all_authors_tagged %>%
   distinct()
 ```
 
-```{r relative_frequency_long_friendship}
+```{r relative_frequency_long_friendship, include=FALSE}
 all_authors_frequency <- all_authors_tagged %>%
   group_by(title) %>%
   add_count(name = "length") %>%
@@ -238,7 +238,7 @@ all_authors_frequency <- all_authors_tagged %>%
   distinct()
 ```
 
-```{r relative_frequency_long_courage}
+```{r relative_frequency_long_courage, include=FALSE}
 all_authors_frequency <- all_authors_tagged %>%
   group_by(title) %>%
   add_count(name = "length") %>%
@@ -248,7 +248,7 @@ all_authors_frequency <- all_authors_tagged %>%
   distinct()
 ```
 
-```{r relative_frequency_long_duty}
+```{r relative_frequency_long_duty, include=FALSE}
 all_authors_frequency <- all_authors_tagged %>%
   group_by(title) %>%
   add_count(name = "length") %>%
@@ -260,7 +260,7 @@ all_authors_frequency <- all_authors_tagged %>%
 
 
 
-```{r relative_frequency_short, message=FALSE}
+```{r relative_frequency_short, message=FALSE, include=FALSE}
 
 #This is quite a number of steps. We can refactor this with the `summarise` function to read:
 
@@ -391,16 +391,19 @@ all_authors_tagged %>%
   theme_clean()
 ```
 
+
+
+```{r all_author_sentences, include=FALSE}
+
 ##Sentiment Analysis
 
-```{r all_author_sentences}
 all_authors_sentence <- all_authors %>%
   group_by(author, title, text) %>%
   summarise (text = paste(text, collapse = "")) %>%
   unnest_regex(sentences, text, pattern = "[.?!]", to_lower = FALSE)  
 ```
 
-```{r author_sentence_nr}
+```{r author_sentence_nr, include=FALSE}
 author_sentence_nr <- all_authors_sentence %>%
   ungroup() %>%
   mutate(sentence_number = row_number()) %>%
@@ -409,9 +412,12 @@ author_sentence_nr <- all_authors_sentence %>%
   anti_join(stop_words)
 ```
 
+
+
+```{r author_concept, include=FALSE}
+
 ### Adding the concepts
 
-```{r author_concept}
 author_concept <-  author_sentence_nr %>%
   left_join(bravery_df) %>%
   left_join(friendship_df) %>%
@@ -419,14 +425,17 @@ author_concept <-  author_sentence_nr %>%
   left_join(duty_df) 
 ```
 
-```{r author_concept_sentiment}
+```{r author_concept_sentiment, include=FALSE}
 author_concept_sentiment <- author_concept %>%
   inner_join(get_sentiments("bing"))
 ```
 
+
+
+```{r author_sentiment_total, include=FALSE}
+
 ### Calculating sentiment total
 
-```{r author_sentiment_total}
 author_sentiment_total <- author_concept_sentiment %>%
   count(sentence_number, sentiment) %>%
   pivot_wider(names_from = sentiment,
@@ -437,9 +446,12 @@ author_sentiment_total <- author_concept_sentiment %>%
   filter(bravery == TRUE | friendship == TRUE | courage == TRUE | duty == TRUE)
 ```
 
+
+
+```{r author_sentiment_table_bravery_friendship, include=FALSE}
+
 ### Calculating sentiment by concept word
 
-```{r author_sentiment_table_bravery_friendship}
 author_sentiment_table <- author_sentiment_total %>%
   pivot_longer(bravery:friendship,
                names_to = "concept",
@@ -450,7 +462,8 @@ author_sentiment_table <- author_sentiment_total %>%
   ungroup()
 ```
 
-```{r author_sentiment_table_courage_duty}
+```{r author_sentiment_table_courage_duty, include=FALSE}
+
 author_sentiment_table <- author_sentiment_total %>%
   pivot_longer(courage:duty,
                names_to = "concept",
@@ -459,11 +472,16 @@ author_sentiment_table <- author_sentiment_total %>%
   group_by(author, concept) %>%
   summarise (total = sum(sentiment)) %>%
   ungroup()
+
+
 ```
+
+
+
+```{r author_sentiment_plot, include=FALSE}
 
 ### Plotting sentiment
 
-```{r author_sentiment_plot}
 author_sentiment_plot <- author_sentiment_table %>%
   ggplot(aes(author, y = total, fill = author)) +
   geom_col(color = "black",
@@ -473,7 +491,24 @@ author_sentiment_plot <- author_sentiment_table %>%
   labs(title = "Positive and Negative Sentiment by Concept",
        x = "Overal Sentiment",
        y = "Author",
-       fill = "Yes") +
+       fill = "friendship") +
   coord_flip() 
 ```
 
+```{r final_chart}
+author_sentiment_table %>%
+  mutate(authorr = str_to_title(author)) %>%
+  mutate(concept = str_to_title(concept)) %>%
+  ggplot(aes(reorder(author, -total), y = total, fill = gender)) +
+  geom_col(color = "black",
+           alpha = .7,
+           position = "identity") +
+  facet_wrap(~ concept) +
+  labs(title = "Positive and Negative Sentiment by Concept",
+       x = "Overal Sentiment",
+       y = "Author",
+       fill = "Yes") +
+  scale_fill_brewer(palette = "Dark2") +
+  coord_flip() +
+  theme_hc()
+```
