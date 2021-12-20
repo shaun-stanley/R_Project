@@ -7,51 +7,56 @@ output:
   pdf_document: default
 ---
 
-```{r}
+```{r load libraries, include=FALSE}
 library(tidyverse)
 library(humaniformat) # used to convert from First Name Last Name to Last Name, First Name
 library(tidytext)
 library(gutenbergr)
 ```
 
+
+
+```{r gutenberg_works, include=FALSE}
 ## Import data
 
-```{r gutenberg_works}
 temp <- gutenberg_works()
 ```
 
-```{r gutenberg_kipling_download, eval=FALSE}
+```{r gutenberg_kipling_download, eval=FALSE, include=FALSE}
 kipling_download <- gutenberg_works() %>%
                         filter(str_detect(author, "Kipling")) %>% 
                       gutenberg_download(mirror="https://gutenberg.pglaf.org/", meta_fields = c("title", "author"))
 
 ```
 
-```{r gutenberg_twain_download, eval=FALSE}
+```{r gutenberg_twain_download, eval=FALSE, include=FALSE}
 twain_download <- gutenberg_works() %>%
                         filter(str_detect(author, "Twain")) %>% 
                       gutenberg_download(mirror="https://gutenberg.pglaf.org/", meta_fields = c("title", "author"))
 ```
 
 
+
+
+```{r backup_data_kipling, eval=FALSE, include=FALSE}
+
 ## Backing up data
 
-```{r backup_data_kipling, eval=FALSE}
 write_csv(twain_download, "twain_download.csv")
 ```
 
-```{r backup_data_twain, eval=FALSE}
+```{r backup_data_twain, eval=FALSE, include=FALSE}
 write_csv(kipling_download, "kipling_download.csv")
 ```
 
 ## Restoring data
 
-```{r restore_data}
+```{r restore_data, include=FALSE}
 kipling_import <- read_csv("kipling_download.csv")
 twain_import <- read_csv("twain_download.csv")
 ```
 
-```{r}
+```{r, include=FALSE}
 kipling_import <- kipling_import %>%
     mutate(year = case_when(title == "Plain Tales from the Hills" ~ "1888",
                           title == "Soldiers Three" ~ "1888",
@@ -81,7 +86,7 @@ kipling_import <- kipling_import %>%
   arrange(year) # Arranging the table by year
 ```
 
-```{r}
+```{r, include=FALSE}
 twain_import <- twain_import %>%
     mutate(year = case_when(title == "A Connecticut Yankee" ~ "1889",
                           title == "Those Extraordinary Twins" ~ "1893",
@@ -114,20 +119,20 @@ twain_import <- twain_import %>%
 
 ### Adding Author
 
-```{r kipling_author}
+```{r kipling_author, include=FALSE}
 kipling_authors <- bind_rows(kipling_import)
 ```
 
-```{r twain_author}
+```{r twain_author, include=FALSE}
 twain_authors <- bind_rows(twain_import)
 ```
 
-```{r kipling_column}
+```{r kipling_column, include=FALSE}
 kipling_authors <- kipling_authors %>% 
                 mutate(author ="Kipling")
 ```
 
-```{r twain_column}
+```{r twain_column, include=FALSE}
 twain_authors <- twain_authors %>% 
                 mutate(author ="Twain")
 ```
@@ -433,7 +438,7 @@ author_sentiment_table <- author_sentiment_total %>%
 ### Plotting sentiment
 
 ```{r author_sentiment_plot}
-author_sentiment_table %>%
+author_sentiment_plot <- author_sentiment_table %>%
   ggplot(aes(author, y = total, fill = author)) +
   geom_col(color = "black",
            alpha = .7,
