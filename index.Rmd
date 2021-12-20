@@ -49,9 +49,12 @@ write_csv(twain_download, "twain_download.csv")
 write_csv(kipling_download, "kipling_download.csv")
 ```
 
-## Restoring data
+
 
 ```{r restore_data, include=FALSE}
+
+## Restoring data
+
 kipling_import <- read_csv("kipling_download.csv")
 twain_import <- read_csv("twain_download.csv")
 ```
@@ -115,11 +118,13 @@ twain_import <- twain_import %>%
   arrange(year) # Arranging the table by year
 ```
 
+```{r kipling_author, include=FALSE}
+
+
 ## Modelling Data
 
 ### Adding Author
 
-```{r kipling_author, include=FALSE}
 kipling_authors <- bind_rows(kipling_import)
 ```
 
@@ -141,17 +146,23 @@ twain_authors <- twain_authors %>%
 all_authors <- bind_rows(kipling_authors, twain_authors)
 ```
 
+
+
+```{r tidy_all_authors, include=FALSE}
+
 ### Tidying the Text
 
-```{r tidy_all_authors}
 tidy_all_authors <- all_authors %>% 
                     unnest_tokens(word, text) %>% 
                     anti_join(stop_words)
 ```
 
+
+
+```{r adding_words, include=FALSE}
+
 ### Creating operationalizing words
 
-```{r adding_words}
 bravery_words <- c("brave","adventure", "confident", "confidently", "courage", "fear")
 
 bravery_df <- data_frame(word = bravery_words, bravery = TRUE)
@@ -169,9 +180,12 @@ duty_words <- c("duty", "burden", "job", " work","ought")
 duty_df <- data_frame(word = duty_words, duty = TRUE)
 ```
 
+
+
+```{r tagged_words, include=FALSE}
+
 #We can add these words by using a left_join. A left join will keep everything on left hand side 
 
-```{r tagged_words}
 all_authors_tagged <- tidy_all_authors %>% 
                                 left_join(bravery_df) %>% 
                                 left_join(friendship_df) %>%
@@ -179,16 +193,19 @@ all_authors_tagged <- tidy_all_authors %>%
                                 left_join(duty_df)
 ```
 
+
+
+```{r calculate_words, include=FALSE}
+
 #We can then establish some basic percentages for the use of each word.
 
-```{r calculate_words}
 all_authors_table <- all_authors_tagged %>% 
                      group_by(author) %>% 
                      count(bravery, friendship, courage, duty) %>% 
                      mutate (percent = n/sum(n)*100)
 ```
 
-```{r load_libraries}
+```{r load_libraries, include=FALSE}
 library(gutenbergr)
 library(tidytext)
 library(tidyverse)
@@ -196,9 +213,12 @@ library(scales)
 library(ggthemes)
 ```
 
-## Part 2: Basic EDA with ggplot
+
 
 ```{r relative_frequency_long_bravery}
+
+## Part 2: Basic EDA with ggplot
+
 all_authors_frequency <- all_authors_tagged %>%
   group_by(title) %>%
   add_count(name = "length") %>%
@@ -238,18 +258,24 @@ all_authors_frequency <- all_authors_tagged %>%
   distinct()
 ```
 
-#This is quite a number of steps. We can refactor this with the `summarise` function to read:
+
 
 ```{r relative_frequency_short, message=FALSE}
+
+#This is quite a number of steps. We can refactor this with the `summarise` function to read:
+
 all_authors_frequency_short <- all_authors_tagged %>%
   group_by(author, title) %>%
   summarise(relative_frequency_short =
               sum(bravery, na.rm = TRUE) / n())
 ```
 
-### Grouping variables in a histogram`
+
 
 ```{r histogram_bravery}
+
+### Grouping variables in a histogram`
+
 all_authors_tagged %>%
   group_by(author, title) %>%
   #Run the same summary function, but instead of only creating one column                      create two.
